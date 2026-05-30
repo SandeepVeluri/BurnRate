@@ -1,0 +1,38 @@
+/* BURN RATE — locked color palette. Single source of truth. Never edit inline. */
+
+:root {
+  /* ── Customer stage colors ── */
+  --color-stage-unaware: #ffffff;
+  --color-stage-aware: #c8ced3;
+  --color-stage-adopter: #f08a2c;
+  --color-stage-loyal: #d6402f;
+
+  /* ── Player colors ── */
+  --color-player-p1: #e8338a;   /* Magenta */
+  --color-player-p2: #00897b;   /* Teal */
+  --color-player-p3: #5b3fb5;   /* Purple */
+  --color-player-p4: #9aaf2b;   /* Lime */
+
+  /* ── Event card category colors ── */
+  --color-event-macro: #1f5e3a;    /* Dark green */
+  --color-event-market: #1e3a8a;   /* Navy blue */
+  --color-event-behavior: #8b5a2b; /* Brown */
+  --color-event-swan: #1a1a1a;     /* Black */
+
+  /* ── Pricing tier fills (greyscale only) ── */
+  --color-tier-free-fill: transparent;
+  --color-tier-free-border: #555555;
+  --color-tier-discount-fill: #bfbfbf;
+  --color-tier-market-fill: #808080;
+  --color-tier-premium-fill: #404040;
+
+  /* ── Neutral / structural ── */
+  --color-board-bg: #1a1a2e;
+  --color-territory-bg: #16213e;
+  --color-territory-border: #2a2a4a;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #9090a0;
+  --color-cell-empty: #2a2a3a;
+  --color-cell-filled: #4a6fa5;
+  --color-loyalty-pip: #111111;
+}
