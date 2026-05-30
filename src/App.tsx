@@ -32,7 +32,7 @@ function App() {
       {/* Players status bar */}
       <div
         style={{
-          padding: '10px 20px',
+          padding: '10px 250px 10px 20px',
           background: 'var(--color-territory-bg)',
           borderTop: '1px solid var(--color-territory-border)',
           display: 'flex',
