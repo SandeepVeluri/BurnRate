@@ -3,9 +3,21 @@ import { useStore } from './game/store';
 import { PlayerSetup } from './components/PlayerSetup';
 import { Board } from './components/Board';
 import { RoundTracker } from './components/RoundTracker';
-import { PaletteLegend } from './components/ui/PaletteLegend';
 import { ActionBar } from './components/ActionBar';
+import { PaletteLegend } from './components/ui/PaletteLegend';
 import type { PlayerColor } from './game/types';
+
+const btnStyle = {
+  padding: '8px 20px',
+  borderRadius: 6,
+  border: 'none',
+  fontFamily: 'monospace',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+  background: 'var(--color-player-p2)',
+  color: '#fff',
+};
 
 function App() {
   const { screen, game, initGame, drawEvent, subsidize, wait, runMarketPhase, runRevenuePhase } = useStore();
@@ -20,175 +32,78 @@ function App() {
     );
   }
 
-  if (game.phase === 'endgame') {
-    return (
-      <div style={{ minHeight: '100vh', background: 'var(--color-board-bg)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 24 }}>
-        <h1 style={{ fontFamily: 'monospace', color: 'var(--color-text-primary)', fontSize: 32 }}>Game Over</h1>
-        <p style={{ fontFamily: 'monospace', color: 'var(--color-text-secondary)', fontSize: 16 }}>10 rounds complete.</p>
-        <button
-          onClick={() => useStore.setState({ screen: 'setup', game: null })}
-          style={{
-            padding: '10px 24px', borderRadius: 8,
-            background: 'var(--color-player-p1)', color: '#fff',
-            fontFamily: 'monospace', fontSize: 14, fontWeight: 700,
-            border: 'none', cursor: 'pointer',
-          }}
-        >
-          New Game
-        </button>
-      </div>
-    );
-  }
-
   const currentPlayer = game.players[game.currentPlayerIndex];
 
-  // Compute valid targets for subsidize targeting mode
-  const pricedByCurrentPlayer = game.pricedThisRound[currentPlayer?.id] ?? [];
-  const validTargets = game.phase === 'actions' && targeting
-    ? game.territories
-        .filter(
-          (t) =>
-            !t.saturated &&
-            currentPlayer.cash >= 3 &&
-            !pricedByCurrentPlayer.includes(t.id)
-        )
-        .map((t) => t.id)
-    : [];
+  const validSubsidizeTargets = game.territories
+    .filter((t) => {
+      if (t.saturated) return false;
+      if (currentPlayer.cash < 3) return false;
+      const priced = game.pricedThisRound[currentPlayer.id] ?? [];
+      if (priced.includes(t.id)) return false;
+      return true;
+    })
+    .map((t) => t.id);
 
-  function handleSubsidizeClick() {
-    setTargeting(true);
-  }
-
-  function handleCancelTargeting() {
+  const handleSubsidizeClick = () => setTargeting(true);
+  const handleCancelTargeting = () => setTargeting(false);
+  const handleSelectTerritory = (id: string) => {
+    subsidize(id);
     setTargeting(false);
-  }
+  };
 
-  function handleTerritoryClick(id: string) {
-    if (targeting && validTargets.includes(id)) {
-      subsidize(id);
-      setTargeting(false);
-    }
-  }
-
-  function handleWait() {
-    wait();
-    setTargeting(false);
-  }
-
-  // Last 5 log entries (most recent last)
-  const recentLog = game.log.slice(-5);
+  const recentLog = game.log.slice(-5).reverse();
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-board-bg)', display: 'flex', flexDirection: 'column' }}>
       <RoundTracker round={game.round} phase={game.phase} />
 
-      {/* Phase controller banner */}
-      {game.phase !== 'actions' && (
-        <div
-          style={{
-            padding: '10px 20px',
-            background: 'var(--color-territory-bg)',
-            borderBottom: '2px solid var(--color-territory-border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-          }}
-        >
-          {game.phase === 'event' && (
-            <>
-              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                No event this round
-              </span>
-              <button
-                onClick={drawEvent}
-                style={{
-                  padding: '7px 18px', borderRadius: 6, border: 'none',
-                  background: 'var(--color-player-p2)', color: '#fff',
-                  fontFamily: 'monospace', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                Draw Event Card →
-              </button>
-            </>
-          )}
-
-          {game.phase === 'market' && (
-            <>
-              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                Market phase — resolve market
-              </span>
-              <button
-                onClick={runMarketPhase}
-                style={{
-                  padding: '7px 18px', borderRadius: 6, border: 'none',
-                  background: 'var(--color-player-p3)', color: '#fff',
-                  fontFamily: 'monospace', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                Continue →
-              </button>
-            </>
-          )}
-
-          {game.phase === 'revenue' && (
-            <>
-              <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--color-text-secondary)' }}>
-                Revenue phase (full revenue in step 5)
-              </span>
-              <button
-                onClick={runRevenuePhase}
-                style={{
-                  padding: '7px 18px', borderRadius: 6, border: 'none',
-                  background: 'var(--color-player-p4)', color: '#fff',
-                  fontFamily: 'monospace', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                }}
-              >
-                Next Round →
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       <div style={{ flex: 1, overflow: 'auto' }}>
         <Board
           territories={game.territories}
           players={game.players}
-          highlightedTerritories={targeting ? validTargets : []}
-          onTerritoryClick={targeting ? handleTerritoryClick : undefined}
+          highlightedTerritories={targeting ? validSubsidizeTargets : []}
+          onTerritoryClick={targeting ? handleSelectTerritory : undefined}
         />
       </div>
 
-      {/* Game log */}
-      <div
-        style={{
-          padding: '6px 20px',
-          background: 'var(--color-board-bg)',
-          borderTop: '1px solid var(--color-territory-border)',
-          maxHeight: 100,
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-        }}
-      >
-        {recentLog.length === 0 ? (
-          <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--color-text-secondary)' }}>
-            — no events yet —
-          </span>
-        ) : (
-          recentLog.map((entry, i) => (
-            <div key={i} style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--color-text-secondary)', display: 'flex', gap: 8 }}>
-              <span style={{ color: 'var(--color-cell-filled)', minWidth: 60 }}>
-                R{entry.round} {entry.phase.slice(0, 3).toUpperCase()}
-              </span>
-              <span>{entry.message}</span>
-            </div>
-          ))
-        )}
-      </div>
+      {recentLog.length > 0 && (
+        <div
+          style={{
+            padding: '6px 20px',
+            background: '#0d0d1a',
+            borderTop: '1px solid var(--color-territory-border)',
+            display: 'flex',
+            gap: 12,
+            overflowX: 'auto',
+          }}
+        >
+          {recentLog.map((entry, i) => (
+            <span
+              key={i}
+              style={{
+                fontFamily: 'monospace',
+                fontSize: 10,
+                color: i === 0 ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              R{entry.round} {entry.phase}: {entry.message}
+            </span>
+          ))}
+        </div>
+      )}
 
-      {/* Actions phase: show ActionBar */}
+      {game.phase === 'event' && (
+        <div style={{ padding: '12px 20px', background: 'var(--color-territory-bg)', borderTop: '2px solid var(--color-territory-border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            Round {game.round} — Event Phase: No event card active
+          </span>
+          <button style={btnStyle} onClick={drawEvent}>
+            Draw Event Card →
+          </button>
+        </div>
+      )}
+
       {game.phase === 'actions' && (
         <ActionBar
           currentPlayer={currentPlayer}
@@ -196,24 +111,55 @@ function App() {
           territories={game.territories}
           subsidizedThisRound={game.subsidizedThisRound}
           targeting={targeting}
-          validTargets={validTargets}
+          validTargets={validSubsidizeTargets}
           onSubsidize={handleSubsidizeClick}
-          onWait={handleWait}
-          onSelectTerritory={handleTerritoryClick}
+          onWait={wait}
+          onSelectTerritory={handleSelectTerritory}
           onCancelTargeting={handleCancelTargeting}
         />
       )}
 
-      {/* Players status bar */}
+      {game.phase === 'market' && (
+        <div style={{ padding: '12px 20px', background: 'var(--color-territory-bg)', borderTop: '2px solid var(--color-territory-border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            Market Phase — resolve subsidies and upgrade customers
+          </span>
+          <button style={btnStyle} onClick={runMarketPhase}>
+            Resolve Market →
+          </button>
+        </div>
+      )}
+
+      {game.phase === 'revenue' && (
+        <div style={{ padding: '12px 20px', background: 'var(--color-territory-bg)', borderTop: '2px solid var(--color-territory-border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            Revenue Phase — (full revenue coming in step 5)
+          </span>
+          <button style={btnStyle} onClick={runRevenuePhase}>
+            {game.round < 10 ? `Next Round (${game.round + 1}) →` : 'End Game →'}
+          </button>
+        </div>
+      )}
+
+      {game.phase === 'endgame' && (
+        <div style={{ padding: '12px 20px', background: 'var(--color-territory-bg)', borderTop: '2px solid var(--color-territory-border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: 'var(--color-stage-loyal)' }}>
+            Game Over! (Scoring screen coming in step 10)
+          </span>
+          <button style={{ ...btnStyle, background: 'var(--color-player-p1)' }} onClick={() => useStore.setState({ screen: 'setup', game: null })}>
+            New Game
+          </button>
+        </div>
+      )}
+
       <div
         style={{
-          padding: '10px 20px',
-          background: 'var(--color-territory-bg)',
+          padding: '8px 250px 8px 20px',
+          background: '#0d0d1a',
           borderTop: '1px solid var(--color-territory-border)',
           display: 'flex',
-          gap: 20,
+          gap: 16,
           alignItems: 'center',
-          flexWrap: 'wrap',
         }}
       >
         {game.players.map((p) => (
@@ -223,29 +169,28 @@ function App() {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              padding: '6px 12px',
+              padding: '4px 10px',
               borderRadius: 6,
               border: `2px solid var(--color-player-${p.color})`,
               background: game.players[game.currentPlayerIndex].id === p.id && game.phase === 'actions'
                 ? 'rgba(255,255,255,0.06)' : 'transparent',
             }}
           >
-            <div style={{
-              width: 10, height: 10, borderRadius: 2,
-              background: `var(--color-player-${p.color})`,
-            }} />
-            <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-primary)', fontWeight: 700 }}>
+            <div style={{ width: 8, height: 8, borderRadius: 2, background: `var(--color-player-${p.color})` }} />
+            <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--color-text-primary)', fontWeight: 700 }}>
               {p.name}
             </span>
-            <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--color-text-secondary)' }}>
               ${p.cash}
             </span>
-            <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--color-text-secondary)' }}>
+            <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--color-text-secondary)' }}>
               {p.flagsRemaining}⚑
             </span>
-            <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'var(--color-text-secondary)' }}>
-              {p.firstMoverTokens.length}★
-            </span>
+            {p.firstMoverTokens.length > 0 && (
+              <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#ffd232' }}>
+                {p.firstMoverTokens.length}★
+              </span>
+            )}
           </div>
         ))}
 
@@ -253,7 +198,7 @@ function App() {
           <button
             onClick={() => useStore.setState({ screen: 'setup', game: null })}
             style={{
-              padding: '6px 14px',
+              padding: '4px 12px',
               borderRadius: 6,
               border: '1px solid var(--color-territory-border)',
               background: 'transparent',
