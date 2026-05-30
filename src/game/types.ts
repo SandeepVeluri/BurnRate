@@ -57,6 +57,8 @@ export interface GameState {
   currentEvent: string | null;
   activeEventEffects: ActiveEffect[];
   log: GameLogEntry[];
+  subsidizedThisRound: Record<string, string[]>; // playerId -> territoryIds subsidized this round
+  pricedThisRound: Record<string, string[]>;     // playerId -> territoryIds priced this round
 }
 
 export type AppScreen = 'setup' | 'game' | 'endgame';
